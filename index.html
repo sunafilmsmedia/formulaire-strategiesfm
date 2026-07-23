@@ -128,6 +128,8 @@
     border-radius:16px;
     padding:17px 20px;
     cursor:pointer;
+    color:var(--ink);
+    font-family:inherit;
     transition:border-color .25s var(--ease),background .25s var(--ease),transform .18s var(--ease);
     text-align:left;
   }
@@ -364,12 +366,13 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"priorite", type:"single", eyebrow:"06 · Ton urgence",
-    q:"À quel point atteindre cet objectif est une priorité pour toi en ce moment ?",
+    id:"priorite", type:"single", eyebrow:"06 · Ta priorité",
+    q:"Ta priorité numéro un en ce moment, c'est quoi ?",
+    sub:"Ce qui compte le plus pour toi là, maintenant — on bâtit le plan autour de ça.",
     options:[
-      {v:"C'est LA priorité", note:"Je suis prêt à agir maintenant"},
-      {v:"Très important", note:"Mais je veux le bon plan avant de bouger"},
-      {v:"Important", note:"Parmi d'autres projets en cours"}
+      {v:"Organisation", note:"Structurer, systématiser, reprendre le contrôle"},
+      {v:"Nouveaux clients", note:"Remplir mon pipeline, générer plus de leads"},
+      {v:"Visibilité", note:"Être vu, bâtir ma marque et mon contenu"}
     ]
   },
   {
@@ -396,6 +399,7 @@ const WEBHOOK_URL = "";
 const answers = {};
 let idx = -1; // -1 = intro
 let locked = false;
+let advanceTimer = null;
 const stage = document.getElementById('stage');
 const rail = document.getElementById('rail');
 const stepcount = document.getElementById('stepcount');
@@ -502,6 +506,7 @@ function wireQuestion(Q, s){
     }
     opts.forEach(b=>{
       b.addEventListener('click', ()=>{
+        if(advanceTimer){ clearTimeout(advanceTimer); advanceTimer=null; }
         opts.forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false');});
         b.classList.add('sel');b.setAttribute('aria-checked','true');
         const o = Q.options[+b.dataset.i];
@@ -511,6 +516,10 @@ function wireQuestion(Q, s){
           else subwrap.classList.remove('show');
         }
         setEnabled(validSingle(Q,answers[Q.id]));
+        // auto-avance : choix simple (pas « Autre » qui demande d'écrire)
+        if(!o.other){
+          advanceTimer = setTimeout(()=>{ advanceTimer=null; go(idx+1); }, 420);
+        }
       });
     });
     if(otherInput){
@@ -655,6 +664,7 @@ function mount(el){ stage.innerHTML=''; stage.appendChild(el); }
 
 function go(target){
   if(locked) return;
+  if(advanceTimer){ clearTimeout(advanceTimer); advanceTimer=null; }
   // validate forward moves
   if(target > idx && idx>=0 && idx<QUESTIONS.length){
     const Q=QUESTIONS[idx];
