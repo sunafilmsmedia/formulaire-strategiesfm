@@ -372,6 +372,13 @@ const QUESTIONS = [
 
 const CASE_URL = "https://sunafilmsmedia.com/etudes-de-cas";
 
+/* ============================================================
+   WEBHOOK — colle ici l'URL de ton webhook (Make.com / Zapier).
+   Les réponses y sont envoyées en JSON à la fin du formulaire.
+   Laisse "" pour désactiver l'envoi.
+   ============================================================ */
+const WEBHOOK_URL = "";
+
 /* ---------------- State ---------------- */
 const answers = {};
 let idx = -1; // -1 = intro
@@ -562,6 +569,55 @@ function renderFinal(){
     ${renderRecap()}`;
   mount(s);
   document.getElementById('stepcount').textContent='Terminé';
+  submitToWebhook();
+}
+
+/* ---------------- Webhook submission ---------------- */
+let submitted = false;
+function labelFor(id){
+  const Q = QUESTIONS.find(q=>q.id===id); return Q ? Q.q : id;
+}
+function readableAnswer(Q){
+  const a = answers[Q.id];
+  if(Q.type==='single' && a) return a.other ? `Autre : ${a.text}` : a.choice + (a.note?` (${a.note})`:'');
+  if(Q.type==='tags' && a) return a.join(', ');
+  if(Q.type==='text') return a || '';
+  return '';
+}
+function submitToWebhook(){
+  if(submitted) return;
+  submitted = true;
+  // identifiants passés via lien personnalisé : ?nom=...&email=...&tel=...&courtier=...
+  const params = {};
+  new URLSearchParams(location.search).forEach((v,k)=>{ params[k]=v; });
+
+  const payload = {
+    source: "formulaire-strategiesfm",
+    submitted_at: new Date().toISOString(),
+    // identifiants (via URL) — vides si non fournis dans le lien
+    nom: params.nom || params.name || "",
+    email: params.email || "",
+    telephone: params.tel || params.telephone || params.phone || "",
+    // réponses (clé courte + libellé lisible)
+    domaine: readableAnswer(QUESTIONS[0]),
+    clients_cibles: readableAnswer(QUESTIONS[1]),
+    capacite_mensuelle: readableAnswer(QUESTIONS[2]),
+    objectif_annuel: readableAnswer(QUESTIONS[3]),
+    position_objectif: readableAnswer(QUESTIONS[4]),
+    priorite: readableAnswer(QUESTIONS[5]),
+    flow_leads: readableAnswer(QUESTIONS[6]),
+    // tout le reste des paramètres d'URL (utm, ref, etc.)
+    url_params: params,
+    page_url: location.href
+  };
+
+  if(!WEBHOOK_URL){ console.info("[Suna] Webhook non configuré — réponses:", payload); return; }
+  fetch(WEBHOOK_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload),
+    keepalive:true
+  }).catch(err=>console.warn("[Suna] Échec envoi webhook:", err));
 }
 
 function renderRecap(){
