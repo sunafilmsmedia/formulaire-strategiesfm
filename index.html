@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Diagnostic croissance Suna Films Media — 7 questions, 2 minutes.">
+<meta name="description" content="Diagnostic croissance Suna Films Media — nom + 7 questions, 2 minutes.">
 <meta name="theme-color" content="#0a0a0b">
 <meta property="og:title" content="Suna Films Media — Diagnostic Croissance">
-<meta property="og:description" content="7 questions rapides pour trouver le plan qui remplit ton agenda.">
+<meta property="og:description" content="Quelques questions rapides pour trouver le plan qui remplit ton agenda.">
 <meta name="robots" content="noindex">
 <title>Suna Films Media — Diagnostic Croissance</title>
 <style>
@@ -319,7 +319,13 @@
 /* ---------------- Question model ---------------- */
 const QUESTIONS = [
   {
-    id:"domaine", type:"single", eyebrow:"01 · Ton terrain",
+    id:"nom", type:"text", short:true, eyebrow:"01 · Toi",
+    q:"Pour commencer — ton nom complet ?",
+    sub:"On personnalise ton plan avec ton nom, alors écris-le comme tu veux le voir.",
+    placeholder:"Prénom et nom"
+  },
+  {
+    id:"domaine", type:"single", eyebrow:"02 · Ton terrain",
     q:"Dans quel domaine travailles-tu ?",
     sub:"Ça nous dit avec quelles industries on te compare — et quels leviers marchent déjà chez tes pairs.",
     options:[
@@ -331,14 +337,14 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"clients", type:"lines", eyebrow:"02 · Ta cible",
+    id:"clients", type:"lines", eyebrow:"03 · Ta cible",
     q:"Quels clients aimerais-tu attirer en priorité ?",
     sub:"Écris-en jusqu'à 3. Sois concret : « primo-accédants », « investisseurs », « refinancement », « acheteurs de luxe »…",
     count:3,
     placeholders:["Priorité 1 — ex : primo-accédants","Priorité 2 — ex : investisseurs","Priorité 3 (optionnel)"]
   },
   {
-    id:"capacite", type:"single", eyebrow:"03 · Ta capacité",
+    id:"capacite", type:"single", eyebrow:"04 · Ta capacité",
     q:"Combien de nouveaux clients par mois pourrais-tu gérer EN PLUS de ta charge actuelle ?",
     sub:"On calibre le volume de leads pour ne pas te noyer — ni te laisser sur ta faim.",
     options:[
@@ -349,13 +355,13 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"objectif", type:"text", eyebrow:"04 · Ta cible chiffrée",
+    id:"objectif", type:"text", eyebrow:"05 · Ta cible chiffrée",
     q:"Ton objectif d'ici la fin de l'année ?",
     sub:"Sois précis : nombre de dossiers, de transactions, ou volume en $.",
     placeholder:"Ex : 24 transactions · 8 M$ de volume · 40 dossiers financés…"
   },
   {
-    id:"position", type:"single", eyebrow:"05 · Ta position",
+    id:"position", type:"single", eyebrow:"06 · Ta position",
     q:"Par rapport à cet objectif, tu te situes où en ce moment ?",
     sub:"Aucun jugement — ça sert juste à doser l'intensité du plan.",
     options:[
@@ -366,7 +372,7 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"priorite", type:"single", eyebrow:"06 · Ta priorité",
+    id:"priorite", type:"single", eyebrow:"07 · Ta priorité",
     q:"Ta priorité numéro un en ce moment, c'est quoi ?",
     sub:"Ce qui compte le plus pour toi là, maintenant — on bâtit le plan autour de ça.",
     options:[
@@ -376,7 +382,7 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"leads", type:"single", eyebrow:"07 · Ton flow idéal",
+    id:"leads", type:"single", eyebrow:"08 · Ton flow idéal",
     q:"Quand un lead entre, tu préfères quoi ?",
     options:[
       {v:"Appeler mes leads moi-même, vite", note:"Je veux le contact direct et rapide"},
@@ -425,10 +431,10 @@ function renderIntro(){
   s.innerHTML = `
     <div class="eyebrow" style="justify-content:center">Diagnostic croissance · 2 minutes</div>
     <h1>Trouvons le plan qui <em>remplit ton agenda</em></h1>
-    <p class="sub">7 questions rapides. À la fin, on identifie le forfait le plus pertinent pour toi — et on te le présente ensemble.</p>
+    <p class="sub">8 questions rapides. À la fin, on identifie le forfait le plus pertinent pour toi — et on te le présente ensemble.</p>
     <button class="btn btn--primary" id="start">Commencer <span class="arr">→</span></button>
     <div class="meta">
-      <span>7 questions</span><span>~2 min</span><span>Réponses confidentielles</span>
+      <span>8 questions</span><span>~2 min</span><span>Réponses confidentielles</span>
     </div>`;
   mount(s);
   s.querySelector('#start').addEventListener('click', ()=>go(0));
@@ -471,7 +477,9 @@ function renderQuestion(){
       <div class="hint">Au moins une priorité suffit pour continuer.</div>`;
   }
   else if(Q.type === 'text'){
-    body = `<textarea class="field" id="textInput" placeholder="${esc(Q.placeholder)}"></textarea>`;
+    body = Q.short
+      ? `<input class="field" id="textInput" placeholder="${esc(Q.placeholder)}" autocomplete="name" maxlength="80"/>`
+      : `<textarea class="field" id="textInput" placeholder="${esc(Q.placeholder)}"></textarea>`;
   }
 
   s.innerHTML = `
@@ -560,7 +568,7 @@ function wireQuestion(Q, s){
     const check = ()=>{ answers[Q.id]=input.value.trim(); setEnabled(input.value.trim().length>1); };
     input.addEventListener('input', check);
     input.addEventListener('keydown', e=>{
-      if(e.key==='Enter' && (e.metaKey||e.ctrlKey) && !next.disabled){ e.preventDefault(); go(idx+1); }
+      if(e.key==='Enter' && (Q.short || e.metaKey || e.ctrlKey) && !next.disabled){ e.preventDefault(); go(idx+1); }
     });
     check();
     setTimeout(()=>input.focus(),200);
@@ -617,21 +625,22 @@ function submitToWebhook(){
   const params = {};
   new URLSearchParams(location.search).forEach((v,k)=>{ params[k]=v; });
 
+  const byId = id => { const Q = QUESTIONS.find(q=>q.id===id); return Q ? readableAnswer(Q) : ""; };
   const payload = {
     source: "formulaire-strategiesfm",
     submitted_at: new Date().toISOString(),
-    // identifiants (via URL) — vides si non fournis dans le lien
-    nom: params.nom || params.name || "",
+    // nom saisi dans le formulaire (fallback : paramètre d'URL)
+    nom: byId("nom") || params.nom || params.name || "",
     email: params.email || "",
     telephone: params.tel || params.telephone || params.phone || "",
     // réponses (clé courte + libellé lisible)
-    domaine: readableAnswer(QUESTIONS[0]),
-    clients_cibles: readableAnswer(QUESTIONS[1]),
-    capacite_mensuelle: readableAnswer(QUESTIONS[2]),
-    objectif_annuel: readableAnswer(QUESTIONS[3]),
-    position_objectif: readableAnswer(QUESTIONS[4]),
-    priorite: readableAnswer(QUESTIONS[5]),
-    flow_leads: readableAnswer(QUESTIONS[6]),
+    domaine: byId("domaine"),
+    clients_cibles: byId("clients"),
+    capacite_mensuelle: byId("capacite"),
+    objectif_annuel: byId("objectif"),
+    position_objectif: byId("position"),
+    priorite: byId("priorite"),
+    flow_leads: byId("leads"),
     // tout le reste des paramètres d'URL (utm, ref, etc.)
     url_params: params,
     page_url: location.href
