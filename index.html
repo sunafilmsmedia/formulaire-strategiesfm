@@ -399,7 +399,7 @@ const CASE_URL = "https://sunafilmsmedia.com/etudes-de-cas";
    Les réponses y sont envoyées en JSON à la fin du formulaire.
    Laisse "" pour désactiver l'envoi.
    ============================================================ */
-const WEBHOOK_URL = "";
+const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/19963951/44fy0xa/";
 
 /* ---------------- State ---------------- */
 const answers = {};
@@ -647,10 +647,15 @@ function submitToWebhook(){
   };
 
   if(!WEBHOOK_URL){ console.info("[Suna] Webhook non configuré — réponses:", payload); return; }
+  // form-urlencoded = pas de preflight CORS + champs nommés propres dans Zapier
+  const form = new URLSearchParams();
+  Object.entries(payload).forEach(([k,v])=>{
+    form.append(k, (v!==null && typeof v==='object') ? JSON.stringify(v) : (v==null?'':String(v)));
+  });
   fetch(WEBHOOK_URL, {
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(payload),
+    headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+    body: form.toString(),
     keepalive:true
   }).catch(err=>console.warn("[Suna] Échec envoi webhook:", err));
 }
