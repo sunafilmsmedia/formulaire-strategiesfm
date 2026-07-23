@@ -161,6 +161,18 @@
   .field:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(236,106,35,.12)}
   textarea.field{min-height:120px}
 
+  /* three visible lines */
+  .lines{display:flex;flex-direction:column;gap:11px}
+  .line{display:flex;align-items:center;gap:14px}
+  .line__num{
+    flex:none;width:34px;height:34px;border-radius:50%;
+    display:grid;place-items:center;font-weight:800;font-size:14px;
+    color:var(--accent);border:1px solid rgba(236,106,35,.4);
+    font-variant-numeric:tabular-nums;transition:.25s var(--ease);
+  }
+  .line:focus-within .line__num{background:var(--accent);color:#0a0a0b;border-color:var(--accent);box-shadow:0 0 0 4px rgba(236,106,35,.14)}
+  .line .field{flex:1}
+
   .tags{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:13px;min-height:2px}
   .tag{
     display:inline-flex;align-items:center;gap:9px;
@@ -317,10 +329,11 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"clients", type:"tags", eyebrow:"02 · Ta cible",
+    id:"clients", type:"lines", eyebrow:"02 · Ta cible",
     q:"Quels clients aimerais-tu attirer en priorité ?",
     sub:"Écris-en jusqu'à 3. Sois concret : « primo-accédants », « investisseurs », « refinancement », « acheteurs de luxe »…",
-    max:3, placeholder:"Tape un type de client puis Entrée"
+    count:3,
+    placeholders:["Priorité 1 — ex : primo-accédants","Priorité 2 — ex : investisseurs","Priorité 3 (optionnel)"]
   },
   {
     id:"capacite", type:"single", eyebrow:"03 · Ta capacité",
@@ -439,10 +452,19 @@ function renderQuestion(){
       </div>`;
     }
   }
-  else if(Q.type === 'tags'){
-    body = `<div class="tags" id="tags"></div>
-      <input class="field" id="tagInput" placeholder="${esc(Q.placeholder)}" maxlength="48"/>
-      <div class="hint" id="tagHint">0 / ${Q.max} — appuie sur Entrée après chaque réponse</div>`;
+  else if(Q.type === 'lines'){
+    const saved = answers[Q.id] || [];
+    let rows = '';
+    for(let i=0;i<Q.count;i++){
+      rows += `<div class="line">
+        <span class="line__num">${i+1}</span>
+        <input class="field lineInput" data-i="${i}" maxlength="60"
+          placeholder="${esc(Q.placeholders[i]||('Priorité '+(i+1)))}"
+          value="${esc(saved[i]||'')}"/>
+      </div>`;
+    }
+    body = `<div class="lines">${rows}</div>
+      <div class="hint">Au moins une priorité suffit pour continuer.</div>`;
   }
   else if(Q.type === 'text'){
     body = `<textarea class="field" id="textInput" placeholder="${esc(Q.placeholder)}"></textarea>`;
@@ -500,32 +522,27 @@ function wireQuestion(Q, s){
     }
   }
 
-  if(Q.type === 'tags'){
-    const list = answers[Q.id] ? [...answers[Q.id]] : [];
-    const wrap = s.querySelector('#tags');
-    const input = s.querySelector('#tagInput');
-    const hint = s.querySelector('#tagHint');
-    const paint = ()=>{
-      wrap.innerHTML = list.map((t,i)=>`<span class="tag">${esc(t)}<button data-i="${i}" aria-label="Retirer">×</button></span>`).join('');
-      wrap.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{list.splice(+btn.dataset.i,1);commit();}));
-      hint.textContent = `${list.length} / ${Q.max}` + (list.length>=Q.max?' — maximum atteint':' — appuie sur Entrée après chaque réponse');
-      hint.classList.toggle('warn', list.length>=Q.max);
-      input.disabled = list.length>=Q.max;
-      input.placeholder = list.length>=Q.max ? '3 réponses — parfait' : Q.placeholder;
+  if(Q.type === 'lines'){
+    const inputs = [...s.querySelectorAll('.lineInput')];
+    const collect = ()=> inputs.map(i=>i.value.trim());
+    const check = ()=>{
+      const vals = collect().filter(Boolean);
+      answers[Q.id] = vals;
+      setEnabled(vals.length>0);
     };
-    const commit = ()=>{ answers[Q.id]=[...list]; paint(); setEnabled(list.length>0); };
-    const add = ()=>{
-      const v = input.value.trim();
-      if(!v || list.length>=Q.max) return;
-      if(list.some(t=>t.toLowerCase()===v.toLowerCase())){ input.value=''; return; }
-      list.push(v); input.value=''; commit();
-    };
-    input.addEventListener('keydown', e=>{
-      if(e.key==='Enter'){ e.preventDefault(); if(input.value.trim()) add(); else if(list.length>0 && !next.disabled) go(idx+1); }
-      if(e.key==='Backspace' && !input.value && list.length){ list.pop(); commit(); }
+    inputs.forEach((input,i)=>{
+      input.addEventListener('input', check);
+      input.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){
+          e.preventDefault();
+          const nextInput = inputs[i+1];
+          if(nextInput && !nextInput.value.trim()){ nextInput.focus(); }
+          else if(!next.disabled){ go(idx+1); }
+        }
+      });
     });
-    commit();
-    setTimeout(()=>input.focus(),200);
+    check();
+    setTimeout(()=>inputs[0].focus(),200);
   }
 
   if(Q.type === 'text'){
@@ -580,7 +597,7 @@ function labelFor(id){
 function readableAnswer(Q){
   const a = answers[Q.id];
   if(Q.type==='single' && a) return a.other ? `Autre : ${a.text}` : a.choice + (a.note?` (${a.note})`:'');
-  if(Q.type==='tags' && a) return a.join(', ');
+  if(Q.type==='lines' && a) return a.join(', ');
   if(Q.type==='text') return a || '';
   return '';
 }
@@ -625,7 +642,7 @@ function renderRecap(){
     let a = answers[Q.id];
     let val='—';
     if(Q.type==='single' && a){ val = a.other ? `Autre : ${a.text}` : (a.choice + (a.note?'':'')); }
-    else if(Q.type==='tags' && a){ val = a.join(' · '); }
+    else if(Q.type==='lines' && a){ val = a.join(' · '); }
     else if(Q.type==='text' && a){ val = a; }
     return `<div class="rc-item"><span class="qh">${esc(shorten(Q.q))}</span>${esc(val||'—')}</div>`;
   }).join('');
