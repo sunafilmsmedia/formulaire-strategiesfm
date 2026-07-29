@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Diagnostic croissance Suna Films Media — nom + 7 questions, 2 minutes.">
+<meta name="description" content="Diagnostic croissance Suna Films Media — nom + 8 questions, 2 minutes.">
 <meta name="theme-color" content="#0a0a0b">
 <meta property="og:title" content="Suna Films Media — Diagnostic Croissance">
 <meta property="og:description" content="Quelques questions rapides pour trouver le plan qui remplit ton agenda.">
@@ -300,6 +300,9 @@
 </head>
 <body>
 
+</head>
+<body>
+
 
 <div class="ambient"></div>
 <div class="grain"></div>
@@ -359,7 +362,18 @@ const QUESTIONS = [
     placeholder:"Ex : 24 transactions · 8 M$ de volume · 40 dossiers financés…"
   },
   {
-    id:"position", type:"single", eyebrow:"06 · Ta position",
+    id:"valeur_client", type:"single", eyebrow:"06 · Ta valeur client",
+    q:"Combien te rapporte un client en moyenne ?",
+    sub:"En commission ou revenu net par client/dossier — une moyenne suffit.",
+    options:[
+      {v:"Moins de 3 000 $"},
+      {v:"3 000 – 7 000 $"},
+      {v:"7 000 – 12 000 $"},
+      {v:"12 000 $ et plus"}
+    ]
+  },
+  {
+    id:"position", type:"single", eyebrow:"07 · Ta position",
     q:"Par rapport à cet objectif, tu te situes où en ce moment ?",
     sub:"Aucun jugement — ça sert juste à doser l'intensité du plan.",
     options:[
@@ -370,7 +384,7 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"priorite", type:"single", eyebrow:"07 · Ta priorité",
+    id:"priorite", type:"single", eyebrow:"08 · Ta priorité",
     q:"Ta priorité numéro un en ce moment, c'est quoi ?",
     sub:"Ce qui compte le plus pour toi là, maintenant — on bâtit le plan autour de ça.",
     options:[
@@ -380,7 +394,7 @@ const QUESTIONS = [
     ]
   },
   {
-    id:"leads", type:"single", eyebrow:"08 · Ton flow idéal",
+    id:"leads", type:"single", eyebrow:"09 · Ton flow idéal",
     q:"Quand un lead entre, tu préfères quoi ?",
     options:[
       {v:"Appeler mes leads moi-même, vite", note:"Je veux le contact direct et rapide"},
@@ -429,10 +443,10 @@ function renderIntro(){
   s.innerHTML = `
     <div class="eyebrow" style="justify-content:center">Diagnostic croissance · 2 minutes</div>
     <h1>Trouvons le plan qui <em>remplit ton agenda</em></h1>
-    <p class="sub">8 questions rapides. À la fin, on identifie le forfait le plus pertinent pour toi — et on te le présente ensemble.</p>
+    <p class="sub">9 questions rapides. À la fin, on identifie le forfait le plus pertinent pour toi — et on te le présente ensemble.</p>
     <button class="btn btn--primary" id="start">Commencer <span class="arr">→</span></button>
     <div class="meta">
-      <span>8 questions</span><span>~2 min</span><span>Réponses confidentielles</span>
+      <span>9 questions</span><span>~2 min</span><span>Réponses confidentielles</span>
     </div>`;
   mount(s);
   s.querySelector('#start').addEventListener('click', ()=>go(0));
@@ -636,6 +650,7 @@ function submitToWebhook(){
     clients_cibles: byId("clients"),
     capacite_mensuelle: byId("capacite"),
     objectif_annuel: byId("objectif"),
+    valeur_client: byId("valeur_client"),
     position_objectif: byId("position"),
     priorite: byId("priorite"),
     flow_leads: byId("leads"),
